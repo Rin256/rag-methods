@@ -9,11 +9,13 @@ from langchain.schema import Document
 from langchain_openai import OpenAIEmbeddings
 from langchain_chroma import Chroma
 
+from config import DATA_DIR, CHROMA_DIR
+
 class ChromaGenerator:
-    def __init__(self, chroma_path="chroma", data_path="data"):
+    def __init__(self):
         openai.api_key = os.environ['OPENAI_API_KEY']
-        self.chroma_path = chroma_path
-        self.data_path = data_path
+        self.chroma_path = CHROMA_DIR
+        self.data_path = DATA_DIR
 
     def generate(self):
         # Основной метод для генерации хранилища данных
@@ -53,7 +55,7 @@ class ChromaGenerator:
         # Очистка предыдущей базы данных, если она существует
         if os.path.exists(self.chroma_path):
             shutil.rmtree(self.chroma_path)
-
+        
         # Создание новой базы данных из документов
         embedding_function = OpenAIEmbeddings(model="text-embedding-3-large")
         db = Chroma.from_documents(

@@ -1,8 +1,10 @@
+from dotenv import load_dotenv
+
 from fastapi import FastAPI
 from pydantic import BaseModel
-from assistant import Assistant
 import uvicorn
-from dotenv import load_dotenv
+
+from assistant import Assistant
 
 class AssistantAPI:
     def __init__(self):

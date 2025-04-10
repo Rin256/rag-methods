@@ -13,26 +13,26 @@ from langchain_chroma import Chroma
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain.prompts import ChatPromptTemplate
 
+from config import LOGS_DIR, CHROMA_DIR
+
 class Assistant:
-    NEGATIVE_ANSWER = "Не удалось найти ответ в предоставленных источниках."
-    PROMPT_TEMPLATE = f"""Ответь на вопрос, основываясь только на следующем контексте:
+    NEGATIVE_ANSWER = "Не удалось найти ответ."
+    PROMPT_TEMPLATE = f"""Ты помощник для поиска подходящих методов.
+Ответь на вопрос, основываясь только на следующем контексте:
 
 {{context}}
-
-
 
 ---
 
 Ответь на вопрос, исходя из приведенного выше контекста: {{question}}
 Если контекст не содержит ответа, просто скажи: «{NEGATIVE_ANSWER}»"""
     
-    def __init__(self, chroma_path="chroma", log_dir="logs"):
+    def __init__(self):
         openai.api_key = os.environ['OPENAI_API_KEY']
         embedding_function = OpenAIEmbeddings(model="text-embedding-3-large")
-        self.db = Chroma(persist_directory=chroma_path, embedding_function=embedding_function)
-        self.chroma_path = chroma_path
-        self.log_dir = log_dir
-        os.makedirs(log_dir, exist_ok=True)
+        self.db = Chroma(persist_directory=CHROMA_DIR, embedding_function=embedding_function)
+        self.log_dir = LOGS_DIR
+        os.makedirs(self.log_dir, exist_ok=True)
 
     def generate(self, question):
         # Основная логика для поиска в базе данных и генерации ответа
@@ -45,7 +45,7 @@ class Assistant:
 
     def search_database(self, question):
         # Поиск в базе данных релевантных документов
-        chunks = self.db.similarity_search_with_relevance_scores(question, k=3)
+        chunks = self.db.similarity_search_with_relevance_scores(question, k=10)
         return chunks
 
     def create_prompt(self, chunks, question):
@@ -101,17 +101,17 @@ class Assistant:
     def format_response(self, response, chunks):
         # Форматирование текста ответа с указанием источников
         sources = [self.format_source(chunk.metadata.get("source", None)) for chunk, _score in chunks]
-        return f"{response}\n\nИсточники: {sources}"
+        return f"{response}\n\nИсточники:\n{"\n".join(sources)}"
 
     def format_source(self, source):
-       # Проверяем, есть ли ссылка и соответствует ли она ожидаемому формату
-       if source and re.match(r"data\\.*\.md", source):
-           # Преобразуем путь к нужному формату
-           # Убираем 'data\\' и '.md'
-           formatted_source = re.sub(r'data\\', '', source)
-           formatted_source = formatted_source.replace('.md', '')
-           return formatted_source
-       return source
+        # Проверяем, есть ли ссылка и соответствует ли она ожидаемому формату
+        if source and re.match(r".*data\\.*\.md", source):
+            # Преобразуем путь к нужному формату
+            # Убираем 'data\\' и '.md' и заменяем разделители
+            formatted_source = re.sub(r'.*data\\', '', source)
+            formatted_source = formatted_source.replace('.md', '')
+            return formatted_source
+        return source
 
 if __name__ == "__main__":
    # Загрузка переменных окружения из файла .env
